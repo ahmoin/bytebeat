@@ -1,10 +1,9 @@
 "use client";
 
+import { PauseIcon, PlayIcon, RotateCcwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlayIcon, PauseIcon, RotateCcwIcon } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { useBytebeat } from "@/hooks/use-bytebeat";
 import {
 	Select,
 	SelectContent,
@@ -13,7 +12,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { WaveformVisualizer } from "@/components/waveform-visualizer";
+import { useBytebeat } from "@/hooks/use-bytebeat";
 import { PRESETS, SAMPLE_RATES } from "@/lib/bytebeat";
 
 export default function Page() {
@@ -23,9 +25,12 @@ export default function Page() {
 		time,
 		formula,
 		sampleRate,
+		volume,
 		waveformData,
 		setFormula,
 		setSampleRate,
+		setVolume,
+		setTime,
 		play,
 		stop,
 		reset,
@@ -120,11 +125,34 @@ export default function Page() {
 							))}
 						</SelectContent>
 					</Select>
+
+					<Separator orientation="vertical" className="mx-1 h-6" />
+
+					<Label className="font-mono text-xs text-muted-foreground">
+						Volume
+					</Label>
+					<Slider
+						value={[volume]}
+						onValueChange={([value]) => setVolume(value)}
+						min={0}
+						max={1}
+						step={0.01}
+						className="w-32"
+					/>
+					<span className="font-mono text-xs text-muted-foreground">
+						{Math.round(volume * 100)}%
+					</span>
 				</div>
 
-				<span className="font-mono text-xs text-muted-foreground">
-					t = {time.toLocaleString()}
-				</span>
+				<div className="flex items-center gap-2">
+					<Label className="font-mono text-xs text-muted-foreground">t =</Label>
+					<Input
+						type="number"
+						value={time}
+						onChange={(e) => setTime(parseInt(e.target.value, 10) || 0)}
+						className="font-mono text-xs w-32"
+					/>
+				</div>
 			</div>
 		</div>
 	);

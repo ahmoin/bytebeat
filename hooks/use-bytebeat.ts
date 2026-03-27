@@ -40,6 +40,8 @@ class BytebeatProcessor extends AudioWorkletProcessor {
         }
       } else if (data.type === 'reset') {
         this._time = 0
+      } else if (data.type === 'seek') {
+        this._time = data.time
       }
     }
   }
@@ -128,6 +130,13 @@ export function useBytebeat() {
 		}
 	}, []);
 
+	const setTime = React.useCallback((time: number) => {
+		setState((prev) => ({ ...prev, time }));
+		if (audioWorkletNodeRef.current) {
+			audioWorkletNodeRef.current.port.postMessage({ type: "seek", time });
+		}
+	}, []);
+
 	const play = React.useCallback(async () => {
 		const { isPlaying, formula, sampleRate } = stateRef.current;
 		if (isPlaying) return;
@@ -208,6 +217,7 @@ export function useBytebeat() {
 		setFormula,
 		setSampleRate,
 		setVolume,
+		setTime,
 		play,
 		stop,
 		reset,
