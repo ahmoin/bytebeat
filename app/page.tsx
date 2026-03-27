@@ -13,6 +13,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { WaveformVisualizer } from "@/components/waveform-visualizer";
 import { PRESETS, SAMPLE_RATES } from "@/lib/bytebeat";
 
 export default function Page() {
@@ -37,7 +38,7 @@ export default function Page() {
 					bytebeat composer
 				</h1>
 
-				{/* TODO: add a visualizer using waveformData */}
+				<WaveformVisualizer waveformData={waveformData} />
 
 				<div className="flex flex-col gap-1.5">
 					<Label className="font-mono text-xs text-muted-foreground">
