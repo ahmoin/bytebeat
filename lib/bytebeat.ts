@@ -33,7 +33,7 @@ export function buildFnBody(formula: string): string {
 export function compileFormula(
 	formula: string,
 ): ((t: number) => number) | null {
-	Math.atan
+	Math.atan;
 	try {
 		const fn = new Function("t", buildFnBody(formula)) as (t: number) => number;
 		fn(0);

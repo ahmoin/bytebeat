@@ -8,6 +8,7 @@ import {
 	RotateCcwIcon,
 } from "lucide-react";
 import * as React from "react";
+import { ThemeSelector } from "@/components/theme-selector";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -249,6 +250,7 @@ export default function Page() {
 			</div>
 
 			<div className="flex-1" />
+			<ThemeSelector />
 
 			<div className="flex items-center gap-2 px-8 py-4 sm:px-16">
 				<Label className="font-mono text-xs text-muted-foreground">

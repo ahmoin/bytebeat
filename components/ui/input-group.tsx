@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: shadcn component, role="group" is intentional
 		<div
 			data-slot="input-group"
 			role="group"
@@ -48,6 +49,8 @@ function InputGroupAddon({
 	...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: shadcn component, role="group" is intentional
+		// biome-ignore lint/a11y/useKeyWithClickEvents: focus delegation, no keyboard equivalent needed
 		<div
 			role="group"
 			data-slot="input-group-addon"
