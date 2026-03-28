@@ -2,6 +2,16 @@
 
 import * as React from "react";
 
+function resolveVar(variable: string, fallback: string) {
+	const computed = getComputedStyle(document.documentElement);
+	let value = computed.getPropertyValue(variable).trim();
+	const match = value.match(/^var\((--[\w-]+)\)$/);
+	if (match) {
+		value = computed.getPropertyValue(match[1]).trim();
+	}
+	return value || fallback;
+}
+
 export function WaveformVisualizer({
 	waveformData,
 }: {
@@ -46,11 +56,15 @@ export function WaveformVisualizer({
 			const devicePixelRatio = window.devicePixelRatio ?? 1;
 			const data = dataRef.current;
 
-			context.fillStyle = "#050505";
+			const backgroundColor = resolveVar("--background", "#1e1e2e");
+			const accentColor = resolveVar("--primary", "#89b4fa");
+			const gridColor = resolveVar("--border", "#45475a");
+
+			context.fillStyle = backgroundColor;
 			context.fillRect(0, 0, width, height);
 
 			context.lineWidth = 1;
-			context.strokeStyle = "rgba(255,255,255,0.04)";
+			context.strokeStyle = `${gridColor}28`;
 			for (const fraction of [0.25, 0.5, 0.75]) {
 				context.beginPath();
 				context.moveTo(0, fraction * height);
@@ -64,16 +78,16 @@ export function WaveformVisualizer({
 				context.stroke();
 			}
 
-			context.strokeStyle = "rgba(255,255,255,0.10)";
+			context.strokeStyle = `${gridColor}55`;
 			context.beginPath();
 			context.moveTo(0, height / 2);
 			context.lineTo(width, height / 2);
 			context.stroke();
 
 			if (data.length > 0) {
-				context.shadowColor = "#4ade80";
+				context.shadowColor = accentColor;
 				context.shadowBlur = 5 * devicePixelRatio;
-				context.strokeStyle = "#4ade80";
+				context.strokeStyle = accentColor;
 				context.lineWidth = 1.5 * devicePixelRatio;
 				context.lineJoin = "round";
 				context.beginPath();
