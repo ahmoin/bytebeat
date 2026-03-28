@@ -171,6 +171,7 @@ export function useBytebeat() {
 		gainNodeRef.current = gain;
 
 		node.port.postMessage({ type: "fn", body: buildFnBody(formula) });
+		node.port.postMessage({ type: "seek", time: stateRef.current.time });
 
 		node.port.onmessage = ({
 			data,

@@ -81,31 +81,11 @@ export default function Page() {
 	} = useBytebeat();
 
 	return (
-		<div className="flex min-h-svh p-6">
-			<div className="flex max-w-md min-w-0 flex-col gap-6">
+		<div className="flex min-h-svh flex-col">
+			<div className="flex items-center justify-between px-8 py-4 sm:px-16">
 				<h1 className="font-mono text-xl font-semibold tracking-tight">
 					bytebeat composer
 				</h1>
-
-				<WaveformVisualizer waveformData={waveformData} />
-
-				<div className="flex flex-col gap-1.5">
-					<Label className="font-mono text-xs text-muted-foreground">
-						f(t)
-					</Label>
-					<Textarea
-						value={formula}
-						onChange={(e) => setFormula(e.target.value)}
-						className="font-mono text-sm"
-						rows={2}
-						spellCheck={false}
-						autoComplete="off"
-						autoCorrect="off"
-					/>
-					{error && (
-						<p className="font-mono text-xs text-destructive">{error}</p>
-					)}
-				</div>
 
 				<div className="flex flex-wrap items-center gap-2">
 					<Button
@@ -121,30 +101,25 @@ export default function Page() {
 						{isPlaying ? "Pause" : "Play"}
 					</Button>
 
-					<Button onClick={reset} variant="ghost" size="sm">
-						<RotateCcwIcon data-icon="inline-start" />
-						Reset
-					</Button>
-
 					<Separator orientation="vertical" className="mx-1 h-6" />
 
 					<Select
 						onValueChange={(name) => {
-							const p = PRESETS.find((p) => p.name === name);
-							if (p) setFormula(p.formula);
+							const preset = PRESETS.find((preset) => preset.name === name);
+							if (preset) setFormula(preset.formula);
 						}}
 					>
 						<SelectTrigger className="h-8 w-40 font-mono text-xs">
 							<SelectValue placeholder="Presets…" />
 						</SelectTrigger>
 						<SelectContent>
-							{PRESETS.map((p) => (
+							{PRESETS.map((preset) => (
 								<SelectItem
-									key={p.name}
-									value={p.name}
+									key={preset.name}
+									value={preset.name}
 									className="font-mono text-xs"
 								>
-									{p.name}
+									{preset.name}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -235,44 +210,72 @@ export default function Page() {
 						{Math.round(volume * 100)}%
 					</span>
 				</div>
+			</div>
 
-				<div className="flex items-center gap-2">
-					<Label className="font-mono text-xs text-muted-foreground">t =</Label>
-					<Input
-						type="number"
-						value={time}
-						onChange={(e) => setTime(parseInt(e.target.value, 10) || 0)}
-						className="font-mono text-xs w-32"
-					/>
-				</div>
+			<div className="flex flex-col gap-1.5 px-8 sm:px-16">
+				<Label className="font-mono text-xs text-muted-foreground">f(t)</Label>
+				<Textarea
+					value={formula}
+					onChange={(e) => setFormula(e.target.value)}
+					className="font-mono text-sm"
+					rows={2}
+					spellCheck={false}
+					autoComplete="off"
+					autoCorrect="off"
+					placeholder="t*(t>>5|t>>8)"
+				/>
+				{error && <p className="font-mono text-xs text-destructive">{error}</p>}
+			</div>
 
-				<div className="flex items-center gap-2">
-					<Label className="font-mono text-xs text-muted-foreground">
-						Export
-					</Label>
-					<Input
-						type="number"
-						min={1}
-						max={3600}
-						value={exportDuration}
-						onChange={(e) =>
-							setExportDuration(Math.max(1, parseInt(e.target.value, 10) || 1))
-						}
-						className="font-mono text-xs w-24"
-					/>
-					<span className="font-mono text-xs text-muted-foreground">s</span>
-					<Button
-						onClick={handleExport}
-						disabled={exportProgress !== null || !!error}
-						variant="outline"
-						size="sm"
-					>
-						<DownloadIcon data-icon="inline-start" />
-						{exportProgress !== null
-							? `${Math.round(exportProgress * 100)}%`
-							: "MP3"}
-					</Button>
-				</div>
+			<div className="px-8 py-4 sm:px-16">
+				<WaveformVisualizer waveformData={waveformData} />
+			</div>
+
+			<div className="flex items-center gap-2 px-8 sm:px-16">
+				<Button onClick={reset} variant="ghost" size="sm">
+					<RotateCcwIcon data-icon="inline-start" />
+					Reset
+				</Button>
+
+				<Separator orientation="vertical" className="mx-1 h-6" />
+
+				<Label className="font-mono text-xs text-muted-foreground">t =</Label>
+				<Input
+					type="number"
+					value={time}
+					onChange={(e) => setTime(parseInt(e.target.value, 10) || 0)}
+					className="font-mono text-xs w-32"
+				/>
+			</div>
+
+			<div className="flex-1" />
+
+			<div className="flex items-center gap-2 px-8 py-4 sm:px-16">
+				<Label className="font-mono text-xs text-muted-foreground">
+					Export
+				</Label>
+				<Input
+					type="number"
+					min={1}
+					max={3600}
+					value={exportDuration}
+					onChange={(e) =>
+						setExportDuration(Math.max(1, parseInt(e.target.value, 10) || 1))
+					}
+					className="font-mono text-xs w-24"
+				/>
+				<span className="font-mono text-xs text-muted-foreground">s</span>
+				<Button
+					onClick={handleExport}
+					disabled={exportProgress !== null || !!error}
+					variant="outline"
+					size="sm"
+				>
+					<DownloadIcon data-icon="inline-start" />
+					{exportProgress !== null
+						? `${Math.round(exportProgress * 100)}%`
+						: "MP3"}
+				</Button>
 			</div>
 		</div>
 	);
