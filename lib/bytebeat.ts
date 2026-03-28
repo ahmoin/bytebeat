@@ -9,12 +9,13 @@ export const PRESETS = [
 ];
 
 export const SAMPLE_RATES = [
-	{ label: "8000 Hz", value: 8000 },
-	{ label: "11025 Hz", value: 11025 },
-	{ label: "22050 Hz", value: 22050 },
-	{ label: "44100 Hz", value: 44100 },
-	{ label: "48000 Hz", value: 48000 },
-];
+  { label: "8 kHz", value: 8000 },
+  { label: "11025 Hz", value: 11025 },
+  { label: "22050 Hz", value: 22050 },
+  { label: "44.1 kHz", value: 44100 },
+  { label: "48 kHz", value: 48000 },
+]
+
 
 export const MATH_ALIASES = `
   var sin=Math.sin,cos=Math.cos,tan=Math.tan,abs=Math.abs,

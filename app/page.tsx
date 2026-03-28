@@ -1,10 +1,28 @@
 "use client";
 
-import { DownloadIcon, PauseIcon, PlayIcon, RotateCcwIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	DownloadIcon,
+	PauseIcon,
+	PlayIcon,
+	RotateCcwIcon,
+} from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -22,6 +40,9 @@ import { downloadBlob, renderMp3 } from "@/lib/export";
 
 export default function Page() {
 	const [exportDuration, setExportDuration] = React.useState(10);
+	const [sampleRateComboboxOpen, setSampleRateComboboxOpen] =
+		React.useState(false);
+	const [sampleRateInputValue, setSampleRateInputValue] = React.useState("");
 	const [exportProgress, setExportProgress] = React.useState<number | null>(
 		null,
 	);
@@ -129,25 +150,73 @@ export default function Page() {
 						</SelectContent>
 					</Select>
 
-					<Select
-						value={String(sampleRate)}
-						onValueChange={(v) => setSampleRate(parseInt(v, 10))}
+					<Label className="font-mono text-xs text-muted-foreground">
+						Sample Rate
+					</Label>
+					<Popover
+						open={sampleRateComboboxOpen}
+						onOpenChange={setSampleRateComboboxOpen}
 					>
-						<SelectTrigger className="h-8 w-32 font-mono text-xs">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{SAMPLE_RATES.map((r) => (
-								<SelectItem
-									key={r.value}
-									value={String(r.value)}
-									className="font-mono text-xs"
-								>
-									{r.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								className="h-8 w-32 justify-between font-mono text-xs"
+							>
+								<span>
+									{SAMPLE_RATES.find((rate) => rate.value === sampleRate)
+										?.label ?? `${sampleRate} Hz`}
+								</span>
+								<ChevronDownIcon className="pointer-events-none size-4 shrink-0 text-muted-foreground" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="w-32 p-0">
+							<Command shouldFilter={false}>
+								<div className="p-1 pb-0">
+									<Input
+										placeholder="Custom (Hz)"
+										className="h-8 font-mono text-xs"
+										value={sampleRateInputValue}
+										onChange={(changeEvent) =>
+											setSampleRateInputValue(changeEvent.target.value)
+										}
+										onKeyDown={(
+											keyboardEvent: React.KeyboardEvent<HTMLInputElement>,
+										) => {
+											if (keyboardEvent.key === "Enter") {
+												keyboardEvent.stopPropagation();
+												const parsed = parseInt(sampleRateInputValue, 10);
+												if (!Number.isNaN(parsed) && parsed > 0) {
+													setSampleRate(parsed);
+													setSampleRateInputValue("");
+													setSampleRateComboboxOpen(false);
+												}
+											}
+										}}
+									/>
+								</div>
+								<CommandList>
+									<CommandEmpty className="font-mono text-xs">
+										No match.
+									</CommandEmpty>
+									<CommandGroup>
+										{SAMPLE_RATES.map((rate) => (
+											<CommandItem
+												key={rate.value}
+												value={rate.label}
+												className="font-mono text-xs"
+												onSelect={() => {
+													setSampleRate(rate.value);
+													setSampleRateComboboxOpen(false);
+												}}
+											>
+												{rate.label}
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</CommandList>
+							</Command>
+						</PopoverContent>
+					</Popover>
 
 					<Separator orientation="vertical" className="mx-1 h-6" />
 
