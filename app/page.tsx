@@ -1,6 +1,7 @@
 "use client";
 
-import { PauseIcon, PlayIcon, RotateCcwIcon } from "lucide-react";
+import { DownloadIcon, PauseIcon, PlayIcon, RotateCcwIcon } from "lucide-react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { WaveformVisualizer } from "@/components/waveform-visualizer";
 import { useBytebeat } from "@/hooks/use-bytebeat";
 import { PRESETS, SAMPLE_RATES } from "@/lib/bytebeat";
+import { downloadBlob, renderMp3 } from "@/lib/export";
 
 export default function Page() {
+	const [exportDuration, setExportDuration] = React.useState(10);
+	const [exportProgress, setExportProgress] = React.useState<number | null>(
+		null,
+	);
+
+	async function handleExport() {
+		if (exportProgress !== null) return;
+		setExportProgress(0);
+		try {
+			const blob = await renderMp3(
+				formula,
+				sampleRate,
+				exportDuration,
+				setExportProgress,
+			);
+			downloadBlob(blob, `bytebeat-${exportDuration}s.mp3`);
+		} finally {
+			setExportProgress(null);
+		}
+	}
+
 	const {
 		isPlaying,
 		error,
@@ -152,6 +175,34 @@ export default function Page() {
 						onChange={(e) => setTime(parseInt(e.target.value, 10) || 0)}
 						className="font-mono text-xs w-32"
 					/>
+				</div>
+
+				<div className="flex items-center gap-2">
+					<Label className="font-mono text-xs text-muted-foreground">
+						Export
+					</Label>
+					<Input
+						type="number"
+						min={1}
+						max={3600}
+						value={exportDuration}
+						onChange={(e) =>
+							setExportDuration(Math.max(1, parseInt(e.target.value, 10) || 1))
+						}
+						className="font-mono text-xs w-24"
+					/>
+					<span className="font-mono text-xs text-muted-foreground">s</span>
+					<Button
+						onClick={handleExport}
+						disabled={exportProgress !== null || !!error}
+						variant="outline"
+						size="sm"
+					>
+						<DownloadIcon data-icon="inline-start" />
+						{exportProgress !== null
+							? `${Math.round(exportProgress * 100)}%`
+							: "MP3"}
+					</Button>
 				</div>
 			</div>
 		</div>
