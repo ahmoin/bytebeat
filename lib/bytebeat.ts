@@ -18,8 +18,11 @@ export const SAMPLE_RATES = [
 
 export const MATH_ALIASES = `
   var sin=Math.sin,cos=Math.cos,tan=Math.tan,abs=Math.abs,
+      asin=Math.asin,acos=Math.acos,atan=Math.atan,atan2=Math.atan2,abs=Math.abs,
       floor=Math.floor,ceil=Math.ceil,round=Math.round,
       pow=Math.pow,sqrt=Math.sqrt,log=Math.log,exp=Math.exp,
+	  sinh=Math.sinh,cosh=Math.cosh,tanh=Math.tanh,
+	  asinh=Math.asinh,acosh=Math.acosh,atanh=Math.atanh,
       PI=Math.PI,random=Math.random,min=Math.min,max=Math.max;
 `;
 
@@ -30,6 +33,7 @@ export function buildFnBody(formula: string): string {
 export function compileFormula(
 	formula: string,
 ): ((t: number) => number) | null {
+	Math.atan
 	try {
 		const fn = new Function("t", buildFnBody(formula)) as (t: number) => number;
 		fn(0);
