@@ -17,14 +17,14 @@ export const SAMPLE_RATES = [
 ];
 
 export const MATH_ALIASES = `
-  const sin=Math.sin,cos=Math.cos,tan=Math.tan,abs=Math.abs,
-        floor=Math.floor,ceil=Math.ceil,round=Math.round,
-        pow=Math.pow,sqrt=Math.sqrt,log=Math.log,PI=Math.PI,
-        random=Math.random,min=Math.min,max=Math.max;
+  var sin=Math.sin,cos=Math.cos,tan=Math.tan,abs=Math.abs,
+      floor=Math.floor,ceil=Math.ceil,round=Math.round,
+      pow=Math.pow,sqrt=Math.sqrt,log=Math.log,exp=Math.exp,
+      PI=Math.PI,random=Math.random,min=Math.min,max=Math.max;
 `;
 
 export function buildFnBody(formula: string): string {
-	return `"use strict"; ${MATH_ALIASES} return (${formula}) & 255;`;
+	return `${MATH_ALIASES} var _r=(${formula}); return Array.isArray(_r)?(_r[0]&255):(_r&255);`;
 }
 
 export function compileFormula(
