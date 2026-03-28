@@ -28,6 +28,8 @@ class BytebeatProcessor extends AudioWorkletProcessor {
     this._wave = new Array(256).fill(128)
     this._waveIdx = 0
     this._pending = 0
+    this._lastT = -1
+    this._lastSample = 128
 
     this.port.onmessage = ({ data }) => {
       if (data.type === 'fn') {
@@ -53,7 +55,12 @@ class BytebeatProcessor extends AudioWorkletProcessor {
     for (let i = 0; i < ch.length; i++) {
       let sample = 128
       if (this._fn) {
-        try { sample = this._fn(Math.floor(this._time)) & 255 } catch {}
+        const t = Math.floor(this._time)
+        if (t !== this._lastT) {
+          try { this._lastSample = this._fn(t) } catch { this._lastSample = 128 }
+          this._lastT = t
+        }
+        sample = this._lastSample
       }
       ch[i] = (sample - 128) / 128
 
