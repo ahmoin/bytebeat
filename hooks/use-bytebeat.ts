@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { buildFnBody, compileFormula } from "@/lib/bytebeat";
+import { INITIAL_FORMULA } from "@/lib/tabs";
 
 interface BytebeatState {
 	isPlaying: boolean;
@@ -99,7 +100,7 @@ export function useBytebeat() {
 		time: 0,
 		sampleRate: 8000,
 		volume: 1,
-		formula: "t*(42&t>>10)",
+		formula: INITIAL_FORMULA,
 		error: null,
 		waveformData: [],
 	});

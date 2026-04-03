@@ -3,9 +3,13 @@
 import {
 	ChevronDownIcon,
 	DownloadIcon,
+	FolderOpenIcon,
 	PauseIcon,
 	PlayIcon,
+	PlusIcon,
 	RotateCcwIcon,
+	SaveIcon,
+	XIcon,
 } from "lucide-react";
 import * as React from "react";
 import { ThemeSelector } from "@/components/theme-selector";
@@ -33,42 +37,25 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { WaveformVisualizer } from "@/components/waveform-visualizer";
 import { useBytebeat } from "@/hooks/use-bytebeat";
+import { useExport } from "@/hooks/use-export";
+import { useTabs } from "@/hooks/use-tabs";
 import { PRESETS, SAMPLE_RATES } from "@/lib/bytebeat";
-import { downloadBlob, renderMp3 } from "@/lib/export";
+import { isTabDirty } from "@/lib/tabs";
 
 export default function Page() {
 	const [exportDuration, setExportDuration] = React.useState(10);
 	const [sampleRateComboboxOpen, setSampleRateComboboxOpen] =
 		React.useState(false);
 	const [sampleRateInputValue, setSampleRateInputValue] = React.useState("");
-	const [exportProgress, setExportProgress] = React.useState<number | null>(
-		null,
-	);
-
-	async function handleExport() {
-		if (exportProgress !== null) return;
-		setExportProgress(0);
-		try {
-			const blob = await renderMp3(
-				formula,
-				sampleRate,
-				exportDuration,
-				setExportProgress,
-			);
-			downloadBlob(blob, `bytebeat-${exportDuration}s.mp3`);
-		} finally {
-			setExportProgress(null);
-		}
-	}
 
 	const {
 		isPlaying,
 		error,
 		time,
-		formula,
 		sampleRate,
 		volume,
 		waveformData,
@@ -80,6 +67,56 @@ export default function Page() {
 		stop,
 		reset,
 	} = useBytebeat();
+
+	const {
+		tabs,
+		activeTabId,
+		activeTab,
+		isDirty,
+		renamingTabId,
+		renamingValue,
+		setRenamingValue,
+		switchToTab,
+		closeTab,
+		addTab,
+		startRename,
+		commitRename,
+		cancelRename,
+		updateActiveTabFormula,
+		saveActiveTab,
+		handleFileLoad,
+		applyPreset,
+	} = useTabs();
+
+	const { exportProgress, handleExport } = useExport({
+		getFormula: () => activeTab.formula,
+		sampleRate,
+		exportDuration,
+	});
+
+	function handleFormulaChange(value: string) {
+		updateActiveTabFormula(value);
+		setFormula(value);
+	}
+
+	const fileInputRef = React.useRef<React.ComponentRef<typeof Input>>(null);
+
+	function handleTabSwitch(tabId: string) {
+		switchToTab(tabId, setFormula);
+	}
+
+	function handleCloseTab(tabId: string, event: React.MouseEvent) {
+		event.stopPropagation();
+		closeTab(tabId, setFormula);
+	}
+
+	function handleAddTab() {
+		addTab(setFormula);
+	}
+
+	function handleFileLoadWrapper(event: React.ChangeEvent<HTMLInputElement>) {
+		handleFileLoad(event, setFormula);
+	}
 
 	return (
 		<div className="flex min-h-svh flex-col">
@@ -107,7 +144,10 @@ export default function Page() {
 					<Select
 						onValueChange={(name) => {
 							const preset = PRESETS.find((preset) => preset.name === name);
-							if (preset) setFormula(preset.formula);
+							if (preset) {
+								applyPreset(preset.formula);
+								setFormula(preset.formula);
+							}
 						}}
 					>
 						<SelectTrigger className="h-8 w-40 font-mono text-xs">
@@ -214,10 +254,109 @@ export default function Page() {
 			</div>
 
 			<div className="flex flex-col gap-1.5 px-8 sm:px-16">
-				<Label className="font-mono text-xs text-muted-foreground">f(t)</Label>
+				<Tabs value={activeTabId} onValueChange={handleTabSwitch}>
+					<div className="flex items-center gap-1">
+						<TabsList variant="line" className="h-auto gap-0 p-0">
+							{tabs.map((tab) => {
+								const tabDirty = isTabDirty(tab);
+								return (
+									<div
+										key={tab.id}
+										className="group/tab relative flex items-center"
+									>
+										{renamingTabId === tab.id ? (
+											<div className="inline-flex h-8 items-center border-b-2 border-primary px-2">
+												<Input
+													className="w-20 border-0 bg-transparent p-0 font-mono text-xs shadow-none focus-visible:ring-0"
+													value={renamingValue}
+													ref={(inputElement) => inputElement?.focus()}
+													onChange={(changeEvent) =>
+														setRenamingValue(changeEvent.target.value)
+													}
+													onBlur={commitRename}
+													onKeyDown={(keyboardEvent) => {
+														if (keyboardEvent.key === "Enter") commitRename();
+														if (keyboardEvent.key === "Escape") cancelRename();
+														keyboardEvent.stopPropagation();
+													}}
+												/>
+											</div>
+										) : (
+											<TabsTrigger
+												value={tab.id}
+												className="gap-1 pr-5 font-mono text-xs"
+												onDoubleClick={() => startRename(tab.id, tab.name)}
+											>
+												{tab.name}
+												{tabDirty && (
+													<span className="size-1.5 shrink-0 rounded-full bg-current opacity-60" />
+												)}
+											</TabsTrigger>
+										)}
+										<Button
+											tabIndex={-1}
+											variant="ghost"
+											size="icon-xs"
+											onClick={(mouseEvent) =>
+												handleCloseTab(tab.id, mouseEvent)
+											}
+											className="absolute right-0.5 opacity-0 transition-opacity group-hover/tab:opacity-60 hover:opacity-100!"
+										>
+											<XIcon className="size-3" />
+										</Button>
+									</div>
+								);
+							})}
+						</TabsList>
+						<Button
+							variant="ghost"
+							size="icon-xs"
+							onClick={handleAddTab}
+							title="New tab"
+						>
+							<PlusIcon className="size-3.5" />
+						</Button>
+					</div>
+				</Tabs>
+
+				<div className="flex items-center justify-between">
+					<Label className="font-mono text-xs text-muted-foreground">
+						f(t)
+					</Label>
+					<div className="flex items-center gap-1">
+						<Button
+							onClick={() => fileInputRef.current?.click()}
+							variant="ghost"
+							size="sm"
+							className="h-6 gap-1 font-mono text-xs"
+						>
+							<FolderOpenIcon className="size-3" />
+							Load
+						</Button>
+						<Button
+							onClick={saveActiveTab}
+							disabled={!isDirty}
+							variant="ghost"
+							size="sm"
+							className="h-6 gap-1 font-mono text-xs"
+						>
+							<SaveIcon className="size-3" />
+							Save
+						</Button>
+					</div>
+				</div>
+				<Input
+					ref={fileInputRef}
+					type="file"
+					accept=".bb,.json"
+					className="hidden"
+					onChange={handleFileLoadWrapper}
+				/>
 				<Textarea
-					value={formula}
-					onChange={(e) => setFormula(e.target.value)}
+					value={activeTab.formula}
+					onChange={(changeEvent) =>
+						handleFormulaChange(changeEvent.target.value)
+					}
 					className="font-mono text-sm"
 					rows={2}
 					spellCheck={false}
@@ -244,7 +383,9 @@ export default function Page() {
 				<Input
 					type="number"
 					value={time}
-					onChange={(e) => setTime(parseInt(e.target.value, 10) || 0)}
+					onChange={(changeEvent) =>
+						setTime(parseInt(changeEvent.target.value, 10) || 0)
+					}
 					className="font-mono text-xs w-32"
 				/>
 			</div>
@@ -261,8 +402,10 @@ export default function Page() {
 					min={1}
 					max={3600}
 					value={exportDuration}
-					onChange={(e) =>
-						setExportDuration(Math.max(1, parseInt(e.target.value, 10) || 1))
+					onChange={(changeEvent) =>
+						setExportDuration(
+							Math.max(1, parseInt(changeEvent.target.value, 10) || 1),
+						)
 					}
 					className="font-mono text-xs w-24"
 				/>
