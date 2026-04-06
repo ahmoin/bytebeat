@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	CheckIcon,
 	ChevronDownIcon,
 	DownloadIcon,
 	FolderOpenIcon,
@@ -9,9 +10,12 @@ import {
 	PlusIcon,
 	RotateCcwIcon,
 	SaveIcon,
+	SendIcon,
+	SparklesIcon,
 	XIcon,
 } from "lucide-react";
 import * as React from "react";
+import { DiffViewer } from "@/components/diff-view";
 import { ThemeSelector } from "@/components/theme-selector";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +44,11 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { WaveformVisualizer } from "@/components/waveform-visualizer";
+import { useAi } from "@/hooks/use-ai";
 import { useBytebeat } from "@/hooks/use-bytebeat";
 import { useExport } from "@/hooks/use-export";
 import { useTabs } from "@/hooks/use-tabs";
+import { AI_SUGGESTIONS } from "@/lib/ai";
 import { PRESETS, SAMPLE_RATES } from "@/lib/bytebeat";
 import { isTabDirty } from "@/lib/tabs";
 
@@ -118,6 +124,24 @@ export default function Page() {
 		handleFileLoad(event, setFormula);
 	}
 
+	const [aiSampleRate, setAiSampleRate] = React.useState(48000);
+
+	const {
+		instruction: aiInstruction,
+		result: aiResult,
+		error: aiError,
+		isLoading: aiLoading,
+		setInstruction: setAiInstruction,
+		submit: submitAi,
+	} = useAi(() => activeTab.formula, aiSampleRate);
+
+	function handleApplyAiResult() {
+		if (!aiResult) return;
+		applyPreset(aiResult);
+		setFormula(aiResult);
+		setSampleRate(aiSampleRate);
+	}
+
 	return (
 		<div className="flex min-h-svh flex-col">
 			<div className="flex items-center justify-between px-8 py-4 sm:px-16">
@@ -165,6 +189,8 @@ export default function Page() {
 							))}
 						</SelectContent>
 					</Select>
+
+					<Separator orientation="vertical" className="mx-1 h-6" />
 
 					<Label className="font-mono text-xs text-muted-foreground">
 						Sample Rate
@@ -253,174 +279,289 @@ export default function Page() {
 				</div>
 			</div>
 
-			<div className="flex flex-col gap-1.5 px-8 sm:px-16">
-				<Tabs value={activeTabId} onValueChange={handleTabSwitch}>
-					<div className="flex items-center gap-1">
-						<TabsList variant="line" className="h-auto gap-0 p-0">
-							{tabs.map((tab) => {
-								const tabDirty = isTabDirty(tab);
-								return (
-									<div
-										key={tab.id}
-										className="group/tab relative flex items-center"
-									>
-										{renamingTabId === tab.id ? (
-											<div className="inline-flex h-8 items-center border-b-2 border-primary px-2">
-												<Input
-													className="w-20 border-0 bg-transparent p-0 font-mono text-xs shadow-none focus-visible:ring-0"
-													value={renamingValue}
-													ref={(inputElement) => inputElement?.focus()}
-													onChange={(changeEvent) =>
-														setRenamingValue(changeEvent.target.value)
-													}
-													onBlur={commitRename}
-													onKeyDown={(keyboardEvent) => {
-														if (keyboardEvent.key === "Enter") commitRename();
-														if (keyboardEvent.key === "Escape") cancelRename();
-														keyboardEvent.stopPropagation();
-													}}
-												/>
-											</div>
-										) : (
-											<TabsTrigger
-												value={tab.id}
-												className="gap-1 pr-5 font-mono text-xs"
-												onDoubleClick={() => startRename(tab.id, tab.name)}
+			<div className="flex flex-1 gap-0">
+				<div className="flex flex-1 flex-col">
+					<div className="flex flex-col gap-1.5 px-8 sm:px-16">
+						<Tabs value={activeTabId} onValueChange={handleTabSwitch}>
+							<div className="flex items-center gap-1">
+								<TabsList variant="line" className="h-auto gap-0 p-0">
+									{tabs.map((tab) => {
+										const tabDirty = isTabDirty(tab);
+										return (
+											<div
+												key={tab.id}
+												className="group/tab relative flex items-center"
 											>
-												{tab.name}
-												{tabDirty && (
-													<span className="size-1.5 shrink-0 rounded-full bg-current opacity-60" />
+												{renamingTabId === tab.id ? (
+													<div className="inline-flex h-8 items-center border-b-2 border-primary px-2">
+														<Input
+															className="w-20 border-0 bg-transparent p-0 font-mono text-xs shadow-none focus-visible:ring-0"
+															value={renamingValue}
+															ref={(inputElement) => inputElement?.focus()}
+															onChange={(changeEvent) =>
+																setRenamingValue(changeEvent.target.value)
+															}
+															onBlur={commitRename}
+															onKeyDown={(keyboardEvent) => {
+																if (keyboardEvent.key === "Enter")
+																	commitRename();
+																if (keyboardEvent.key === "Escape")
+																	cancelRename();
+																keyboardEvent.stopPropagation();
+															}}
+														/>
+													</div>
+												) : (
+													<TabsTrigger
+														value={tab.id}
+														className="gap-1 pr-5 font-mono text-xs"
+														onDoubleClick={() => startRename(tab.id, tab.name)}
+													>
+														{tab.name}
+														{tabDirty && (
+															<span className="size-1.5 shrink-0 rounded-full bg-current opacity-60" />
+														)}
+													</TabsTrigger>
 												)}
-											</TabsTrigger>
-										)}
-										<Button
-											tabIndex={-1}
-											variant="ghost"
-											size="icon-xs"
-											onClick={(mouseEvent) =>
-												handleCloseTab(tab.id, mouseEvent)
-											}
-											className="absolute right-0.5 opacity-0 transition-opacity group-hover/tab:opacity-60 hover:opacity-100!"
-										>
-											<XIcon className="size-3" />
-										</Button>
-									</div>
-								);
-							})}
-						</TabsList>
-						<Button
-							variant="ghost"
-							size="icon-xs"
-							onClick={handleAddTab}
-							title="New tab"
-						>
-							<PlusIcon className="size-3.5" />
-						</Button>
-					</div>
-				</Tabs>
+												<Button
+													tabIndex={-1}
+													variant="ghost"
+													size="icon-xs"
+													onClick={(mouseEvent) =>
+														handleCloseTab(tab.id, mouseEvent)
+													}
+													className="absolute right-0.5 opacity-0 transition-opacity group-hover/tab:opacity-60 hover:opacity-100!"
+												>
+													<XIcon className="size-3" />
+												</Button>
+											</div>
+										);
+									})}
+								</TabsList>
+								<Button
+									variant="ghost"
+									size="icon-xs"
+									onClick={handleAddTab}
+									title="New tab"
+								>
+									<PlusIcon className="size-3.5" />
+								</Button>
+							</div>
+						</Tabs>
 
-				<div className="flex items-center justify-between">
-					<Label className="font-mono text-xs text-muted-foreground">
-						f(t)
-					</Label>
-					<div className="flex items-center gap-1">
-						<Button
-							onClick={() => fileInputRef.current?.click()}
-							variant="ghost"
-							size="sm"
-							className="h-6 gap-1 font-mono text-xs"
-						>
-							<FolderOpenIcon className="size-3" />
-							Load
+						<div className="flex items-center justify-between">
+							<Label className="font-mono text-xs text-muted-foreground">
+								f(t)
+							</Label>
+							<div className="flex items-center gap-1">
+								<Button
+									onClick={() => fileInputRef.current?.click()}
+									variant="ghost"
+									size="sm"
+									className="h-6 gap-1 font-mono text-xs"
+								>
+									<FolderOpenIcon className="size-3" />
+									Load
+								</Button>
+								<Button
+									onClick={saveActiveTab}
+									disabled={!isDirty}
+									variant="ghost"
+									size="sm"
+									className="h-6 gap-1 font-mono text-xs"
+								>
+									<SaveIcon className="size-3" />
+									Save
+								</Button>
+							</div>
+						</div>
+						<Input
+							ref={fileInputRef}
+							type="file"
+							accept=".bb,.json"
+							className="hidden"
+							onChange={handleFileLoadWrapper}
+						/>
+						<Textarea
+							value={activeTab.formula}
+							onChange={(changeEvent) =>
+								handleFormulaChange(changeEvent.target.value)
+							}
+							className="font-mono text-sm"
+							rows={2}
+							spellCheck={false}
+							autoComplete="off"
+							autoCorrect="off"
+							placeholder="t*(t>>5|t>>8)"
+						/>
+						{error && (
+							<p className="font-mono text-xs text-destructive">{error}</p>
+						)}
+					</div>
+
+					<div className="px-8 py-4 sm:px-16">
+						<WaveformVisualizer waveformData={waveformData} />
+					</div>
+
+					<div className="flex items-center gap-2 px-8 sm:px-16">
+						<Button onClick={reset} variant="ghost" size="sm">
+							<RotateCcwIcon data-icon="inline-start" />
+							Reset
 						</Button>
+
+						<Separator orientation="vertical" className="mx-1 h-6" />
+
+						<Label className="font-mono text-xs text-muted-foreground">
+							t =
+						</Label>
+						<Input
+							type="number"
+							value={time}
+							onChange={(changeEvent) =>
+								setTime(parseInt(changeEvent.target.value, 10) || 0)
+							}
+							className="font-mono text-xs w-32"
+						/>
+					</div>
+
+					<div className="flex-1" />
+					<ThemeSelector />
+
+					<div className="flex items-center gap-2 px-8 py-4 sm:px-16">
+						<Label className="font-mono text-xs text-muted-foreground">
+							Export
+						</Label>
+						<Input
+							type="number"
+							min={1}
+							max={3600}
+							value={exportDuration}
+							onChange={(changeEvent) =>
+								setExportDuration(
+									Math.max(1, parseInt(changeEvent.target.value, 10) || 1),
+								)
+							}
+							className="font-mono text-xs w-24"
+						/>
+						<span className="font-mono text-xs text-muted-foreground">s</span>
 						<Button
-							onClick={saveActiveTab}
-							disabled={!isDirty}
-							variant="ghost"
+							onClick={handleExport}
+							disabled={exportProgress !== null || !!error}
+							variant="outline"
 							size="sm"
-							className="h-6 gap-1 font-mono text-xs"
 						>
-							<SaveIcon className="size-3" />
-							Save
+							<DownloadIcon data-icon="inline-start" />
+							{exportProgress !== null
+								? `${Math.round(exportProgress * 100)}%`
+								: "MP3"}
 						</Button>
 					</div>
 				</div>
-				<Input
-					ref={fileInputRef}
-					type="file"
-					accept=".bb,.json"
-					className="hidden"
-					onChange={handleFileLoadWrapper}
-				/>
-				<Textarea
-					value={activeTab.formula}
-					onChange={(changeEvent) =>
-						handleFormulaChange(changeEvent.target.value)
-					}
-					className="font-mono text-sm"
-					rows={2}
-					spellCheck={false}
-					autoComplete="off"
-					autoCorrect="off"
-					placeholder="t*(t>>5|t>>8)"
-				/>
-				{error && <p className="font-mono text-xs text-destructive">{error}</p>}
-			</div>
 
-			<div className="px-8 py-4 sm:px-16">
-				<WaveformVisualizer waveformData={waveformData} />
-			</div>
+				<div className="flex w-96 flex-col gap-4 border-l p-6">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<SparklesIcon className="size-4 text-muted-foreground" />
+							<span className="font-mono text-sm font-medium">AI</span>
+						</div>
+						<div className="flex items-center gap-1.5">
+							<Label className="font-mono text-xs text-muted-foreground">
+								Rate
+							</Label>
+							<Select
+								value={String(aiSampleRate)}
+								onValueChange={(value) => setAiSampleRate(Number(value))}
+							>
+								<SelectTrigger className="h-7 w-28 font-mono text-xs">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SAMPLE_RATES.map((rate) => (
+										<SelectItem
+											key={rate.value}
+											value={String(rate.value)}
+											className="font-mono text-xs"
+										>
+											{rate.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
 
-			<div className="flex items-center gap-2 px-8 sm:px-16">
-				<Button onClick={reset} variant="ghost" size="sm">
-					<RotateCcwIcon data-icon="inline-start" />
-					Reset
-				</Button>
+					<div className="flex flex-wrap gap-1.5">
+						{AI_SUGGESTIONS.map((suggestion) => (
+							<button
+								key={suggestion}
+								type="button"
+								onClick={() => setAiInstruction(suggestion)}
+								className="rounded-full border px-2.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+							>
+								{suggestion}
+							</button>
+						))}
+					</div>
 
-				<Separator orientation="vertical" className="mx-1 h-6" />
+					<div className="flex flex-col gap-1.5">
+						<Textarea
+							value={aiInstruction}
+							onChange={(changeEvent) =>
+								setAiInstruction(changeEvent.target.value)
+							}
+							onKeyDown={(keyboardEvent) => {
+								if (keyboardEvent.key === "Enter" && !keyboardEvent.shiftKey) {
+									keyboardEvent.preventDefault();
+									submitAi();
+								}
+							}}
+							placeholder="Slow it down, make it louder, change to minor scale…"
+							className="font-mono text-xs resize-none"
+							rows={3}
+							spellCheck={false}
+						/>
+						<Button
+							size="sm"
+							onClick={submitAi}
+							disabled={!aiInstruction.trim() || aiLoading}
+							className="w-full font-mono text-xs"
+						>
+							{aiLoading ? (
+								<>
+									<SparklesIcon className="size-3 animate-pulse" />
+									Generating…
+								</>
+							) : (
+								<>
+									<SendIcon className="size-3" />
+									Send
+								</>
+							)}
+						</Button>
+					</div>
 
-				<Label className="font-mono text-xs text-muted-foreground">t =</Label>
-				<Input
-					type="number"
-					value={time}
-					onChange={(changeEvent) =>
-						setTime(parseInt(changeEvent.target.value, 10) || 0)
-					}
-					className="font-mono text-xs w-32"
-				/>
-			</div>
+					{aiError && (
+						<p className="font-mono text-xs text-destructive">{aiError}</p>
+					)}
 
-			<div className="flex-1" />
-			<ThemeSelector />
-
-			<div className="flex items-center gap-2 px-8 py-4 sm:px-16">
-				<Label className="font-mono text-xs text-muted-foreground">
-					Export
-				</Label>
-				<Input
-					type="number"
-					min={1}
-					max={3600}
-					value={exportDuration}
-					onChange={(changeEvent) =>
-						setExportDuration(
-							Math.max(1, parseInt(changeEvent.target.value, 10) || 1),
-						)
-					}
-					className="font-mono text-xs w-24"
-				/>
-				<span className="font-mono text-xs text-muted-foreground">s</span>
-				<Button
-					onClick={handleExport}
-					disabled={exportProgress !== null || !!error}
-					variant="outline"
-					size="sm"
-				>
-					<DownloadIcon data-icon="inline-start" />
-					{exportProgress !== null
-						? `${Math.round(exportProgress * 100)}%`
-						: "MP3"}
-				</Button>
+					{aiResult && (
+						<div className="flex flex-col gap-1.5">
+							<Label className="font-mono text-xs text-muted-foreground">
+								Diff
+							</Label>
+							<DiffViewer oldText={activeTab.formula} newText={aiResult} />
+							<Button
+								size="sm"
+								variant="secondary"
+								className="w-full font-mono text-xs"
+								onClick={handleApplyAiResult}
+							>
+								<CheckIcon className="size-3" />
+								Apply
+							</Button>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);
