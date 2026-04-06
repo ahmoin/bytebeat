@@ -1,4 +1,3 @@
-
 // https://scrapbox.io/0b5vr/128_Voices_Generator_by_0b5vr
 
 import { type NextRequest, NextResponse } from "next/server";

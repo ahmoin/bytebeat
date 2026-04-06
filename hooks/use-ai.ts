@@ -9,16 +9,19 @@ interface AiState {
 	isLoading: boolean;
 }
 
-export function useAi(getCurrentFormula: () => string) {
+export function useAi(
+	getCurrentFormula: () => string,
+	sampleRate: number = 48000,
+) {
 	const [state, setState] = React.useState<AiState>({
 		instruction: "",
-		result: "",
+		result: null,
 		error: null,
 		isLoading: false,
 	});
 
 	const setInstruction = React.useCallback((instruction: string) => {
-		setState((state) => ({ ...state, instruction }));
+		setState((prev) => ({ ...prev, instruction }));
 	}, []);
 
 	const submit = React.useCallback(async () => {
@@ -37,6 +40,7 @@ export function useAi(getCurrentFormula: () => string) {
 				body: JSON.stringify({
 					instruction: instruction.trim(),
 					currentFormula: getCurrentFormula() || undefined,
+					sampleRate,
 				}),
 			});
 			const data = await response.json();
